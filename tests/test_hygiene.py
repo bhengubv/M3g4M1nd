@@ -20,10 +20,28 @@ PACKAGE = ROOT / "m3g4m1nd"
 # Our own source only. docs/minimind-recovered-tests/ holds MiniMind's files
 # verbatim as provenance — they are evidence, not code we are responsible for,
 # and scanning them would charge us with their imports.
-_EXCLUDED_DIRS = {".venv", "minimind-recovered-tests", "__pycache__"}
-SOURCES = sorted(
-    p for p in ROOT.rglob("*.py") if not _EXCLUDED_DIRS.intersection(p.parts)
-)
+_EXCLUDED_DIRS = {"minimind-recovered-tests", "__pycache__", "site-packages"}
+
+
+def _is_ours(path: Path) -> bool:
+    """Our own source only.
+
+    Virtual environments are matched by shape, not by one hardcoded name. The
+    first version excluded the literal ".venv", so creating a second
+    environment called ".venv-xpu" made this scan walk thousands of torch and
+    Intel files and report their imports as undeclared. The same wrong
+    assumption — that there is exactly one venv and it is called .venv — also
+    let that directory slip past .gitignore.
+    """
+    for part in path.parts:
+        if part in _EXCLUDED_DIRS:
+            return False
+        if part.startswith((".venv", "venv")) or part == "env":
+            return False
+    return True
+
+
+SOURCES = sorted(p for p in ROOT.rglob("*.py") if _is_ours(p))
 
 
 # ---------------------------------------------------------------- D7
@@ -261,3 +279,19 @@ def test_importing_the_package_does_not_build_a_web_application():
 def test_the_import_on_demand_list_is_not_a_dumping_ground():
     """It is two modules for one reason. If it grows, that needs arguing for."""
     assert IMPORT_ON_DEMAND == {"serve", "webui"}
+
+
+def test_the_source_scan_ignores_any_virtual_environment_not_just_dot_venv():
+    """Regression: a second environment named `.venv-xpu` made the scan walk
+    torch's own source and fail. Matched by shape now, not by one name."""
+    assert not _is_ours(Path(".venv/Lib/site-packages/torch/_init_.py"))
+    assert not _is_ours(Path(".venv-xpu/Lib/site-packages/torch/_init_.py"))
+    assert not _is_ours(Path("venv311/lib/x.py"))
+    assert _is_ours(Path("m3g4m1nd/model.py"))
+    assert _is_ours(Path("tests/test_hygiene.py"))
+
+
+def test_the_scan_only_covers_our_own_files():
+    assert 20 < len(SOURCES) < 80, (
+        f"{len(SOURCES)} files scanned; that is not this repository's own source"
+    )
