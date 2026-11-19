@@ -1,0 +1,26 @@
+# Every pin here is imported somewhere in this repository, and every import in
+# this repository is pinned here. tests/test_hygiene.py enforces both
+# directions and fails on either kind of drift.
+#
+# This file describes the code as it stands, not as it is planned. MiniMind
+# carried 22 pins for code that no longer existed and had torch commented out;
+# a dependency list that is aspirational in one direction and broken in the
+# other is worse than none. A pin arrives the day something imports it.
+#
+# torch is a hard requirement and is NOT commented out. The >=2.6 floor is also
+# the version from which torch.load defaults to weights_only=True.
+torch>=2.6
+transformers>=5.0,<6    # the major we actually test on; see docs/ACCEPTANCE.md E2
+tokenizers>=0.21        # m3g4m1nd/tokenizer.py
+
+# serving
+fastapi>=0.115
+uvicorn>=0.32
+pydantic>=2.9
+
+# the HTTP rollout backend
+requests>=2.32
+
+# test-only, imported by tests/
+pytest>=8.0
+httpx>=0.27

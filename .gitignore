@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+.DS_Store
+
+# training artefacts — never committed
+out/
+checkpoints/
+dataset/*.jsonl
+*.pth
+*.safetensors
+wandb/
+swanlog/
+
+# NOTE: tests/ is never ignored, for any reason. See README.md.

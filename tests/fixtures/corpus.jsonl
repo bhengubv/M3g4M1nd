@@ -1,0 +1,15 @@
+{"text": "The sun sets in the west and the sky turns the colour of old brass."}
+{"text": "Transformers model context with self-attention, which is the basis of modern language models."}
+{"text": "A tokenizer maps natural language to token ids and decodes them back to text."}
+{"text": "Durban is warm in November; the humidity sits on the city like a blanket."}
+{"text": "Machine learning fits a function to data and then hopes the data was representative."}
+{"text": "Gradient descent walks downhill and sometimes finds a valley worth staying in."}
+{"text": "A small model trained well beats a large model trained carelessly, within limits."}
+{"text": "Attention is a weighted average where the weights are learned from the content itself."}
+{"text": "Byte-level encoding means no input is ever out of vocabulary, only inefficient."}
+{"text": "The quick brown fox jumps over the lazy dog, as it has for a century of typists."}
+{"text": "Rotary position embeddings rotate the query and key by an angle that depends on position."}
+{"text": "Mixture of experts routes each token to a subset of the parameters, saving compute."}
+{"text": "Reinforcement learning from feedback optimises a reward, which is not the same as being good."}
+{"text": "A regression test is a sentence about the past that stays true about the future."}
+{"text": "Deleting a test keeps the fix and discards the reason anyone would notice it leaving."}

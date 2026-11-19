@@ -1,0 +1,3 @@
+{"conversations": [{"role": "user", "content": "Hi"}, {"role": "assistant", "content": "Hello there"}]}
+{"conversations": [{"role": "system", "content": "Be brief."}, {"role": "user", "content": "Why is the sky blue?"}, {"role": "assistant", "content": "Rayleigh scattering."}, {"role": "user", "content": "And at sunset?"}, {"role": "assistant", "content": "Longer path, more scattering."}]}
+{"conversations": [{"role": "user", "content": "Weather in Durban?"}, {"role": "assistant", "content": "", "tool_calls": [{"name": "get_weather", "arguments": {"city": "Durban"}}]}, {"role": "tool", "content": "{\"temperature\": \"27C\"}"}, {"role": "assistant", "content": "27 degrees and humid."}]}

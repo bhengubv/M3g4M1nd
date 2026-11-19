@@ -1,0 +1,30 @@
+M3g4M1nd
+Copyright 2026 The Geek (Pty) Ltd
+
+This product includes software developed from, and inspired by, the MiniMind
+project:
+
+    MiniMind — https://github.com/jingyaogong/minimind
+    Copyright (c) jingyaogong
+    Licensed under the Apache License, Version 2.0
+
+M3g4M1nd is a clean-room recreation of MiniMind's capability. It was built
+after a full read of MiniMind at commit cc9629e5f464ef46ef9411bfac916364e0a6dff1
+(18 November 2026), and its test suite is derived from the twelve defects that
+read found, plus six regression tests recovered from MiniMind's own git history.
+
+The recovered tests under tests/recovered/ are the work of MiniMind
+contributors and remain under the Apache License, Version 2.0. They are
+credited individually in CREDITS.md.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License. You may obtain a copy of
+the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations under
+the License.
