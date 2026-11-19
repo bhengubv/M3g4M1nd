@@ -25,7 +25,6 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from dataclasses import dataclass
 
-import requests
 import torch
 
 
@@ -163,7 +162,14 @@ class HttpRolloutEngine(RolloutEngine):
         self.base_url = base_url.rstrip("/")
         self.tokenizer = tokenizer
         self.timeout = timeout
-        self.http = session or requests
+        if session is None:
+            # Imported here, not at module scope: `import m3g4m1nd` should not
+            # require an HTTP library to hand you a tensor. The same reasoning
+            # keeps `serve` and `webui` out of the package's __init__.
+            import requests
+
+            session = requests
+        self.http = session
         # Where weights are written for the server to pick up. It must be a
         # path the server can also read; on one machine that is any directory,
         # across machines it has to be shared storage.

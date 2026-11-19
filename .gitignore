@@ -1,8 +1,12 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-.venv/
-venv/
+# `.venv/` alone does not match `.venv-xpu/`, and that directory was ignored
+# only because Python's venv writes its own `.gitignore` containing `*`.
+# Relying on that is relying on luck.
+.venv*/
+venv*/
+env/
 .DS_Store
 
 # training artefacts — never committed
