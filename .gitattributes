@@ -1,0 +1,22 @@
+# Line endings are pinned, not left to each machine's git config.
+#
+# Without this, a Windows checkout rewrites LF to CRLF and anything
+# hash-sensitive breaks. That has cost real time on this machine before: a set
+# of pinned resources failed their checksums and 404'd because a checkout had
+# silently changed their bytes.
+#
+# Everything in this repository is LF, including on Windows.
+* text=auto eol=lf
+
+# The tokenizer is read byte for byte by the tokenizers library and its hash
+# matters. Never touch it.
+model/tokenizer.json       -text
+model/tokenizer_config.json -text
+
+# Fixtures are parsed line by line; a stray CR becomes part of the data.
+*.jsonl text eol=lf
+
+# Weights and archives, should any ever be tracked.
+*.pth   binary
+*.safetensors binary
+*.bin   binary
