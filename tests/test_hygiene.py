@@ -102,6 +102,10 @@ DISTRIBUTION_TO_MODULE = {
     "requests": "requests",
     "pytest": "pytest",
     "httpx": "httpx",
+    # The distribution is `pyyaml`; the module it installs is `yaml`. This map
+    # exists for exactly this, and adding the pin without the entry failed both
+    # directions of the honesty check at once.
+    "pyyaml": "yaml",
 }
 
 
@@ -294,4 +298,16 @@ def test_the_source_scan_ignores_any_virtual_environment_not_just_dot_venv():
 def test_the_scan_only_covers_our_own_files():
     assert 20 < len(SOURCES) < 80, (
         f"{len(SOURCES)} files scanned; that is not this repository's own source"
+    )
+
+
+def test_distributions_whose_import_name_differs_are_mapped():
+    """`pip install pyyaml` gives you `import yaml`. Any such pair needs an
+    entry, and omitting one fails both directions of the honesty check — which
+    is the correct behaviour, and how this entry came to exist."""
+    for distribution, module in DISTRIBUTION_TO_MODULE.items():
+        assert module, f"{distribution} maps to nothing"
+    assert DISTRIBUTION_TO_MODULE["pyyaml"] == "yaml"
+    assert set(_declared()) <= set(DISTRIBUTION_TO_MODULE), (
+        f"declared but unmapped: {sorted(set(_declared()) - set(DISTRIBUTION_TO_MODULE))}"
     )
