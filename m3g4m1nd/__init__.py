@@ -39,7 +39,7 @@ from .pipelines import StageResult, run_agent, run_distillation, run_dpo, run_gr
 from .rewards import Rubric, deterministic_scorer, ground_truth_hits
 from .rl import GRPOUpdater, UpdateStats, ValueHead
 from .rollout import HttpRolloutEngine, RolloutResult, TorchRolloutEngine
-from .tokenizer import CHAT_TEMPLATE, load_tokenizer, train_tokenizer
+from .tokenizer import CHAT_TEMPLATE, load_tokenizer, texts_from_jsonl, train_tokenizer
 from .tools import CALCULATOR, Tool, ToolRegistry, safe_eval
 from .train import (
     StepPlan,
@@ -57,7 +57,7 @@ __all__ = [
     # model
     "M3Config", "M3ForCausalLM", "M3Model", "CausalOutput", "count_parameters",
     # tokenizer
-    "CHAT_TEMPLATE", "load_tokenizer", "train_tokenizer",
+    "CHAT_TEMPLATE", "load_tokenizer", "train_tokenizer", "texts_from_jsonl",
     # data
     "IGNORE", "PretrainDataset", "SFTDataset", "PreferenceDataset",
     "PromptDataset", "read_jsonl",

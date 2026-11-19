@@ -170,3 +170,97 @@ def test_the_tokenizer_can_be_rebuilt_from_the_committed_corpus(tmp_path):
     rebuilt = load_tokenizer(out)
     assert rebuilt.model_max_length == 32768
     assert _roundtrips(rebuilt, "<|im_start|>user\nHi<|im_end|>\n")
+
+
+# ---------------------------------------------- streaming a real corpus
+def test_the_streaming_reader_tolerates_a_truncated_tail(tmp_path):
+    """A corpus fetched as a byte range ends mid-record. One unparseable final
+    line must not discard the preceding two hundred megabytes."""
+    from m3g4m1nd.tokenizer import texts_from_jsonl
+
+    path = tmp_path / "sliced.jsonl"
+    path.write_text(
+        '{"text": "first"}\n{"text": "second"}\n{"text": "thi',
+        encoding="utf-8",
+    )
+    assert list(texts_from_jsonl(path)) == ["first", "second"]
+
+
+def test_the_streaming_reader_handles_both_corpus_shapes(tmp_path):
+    from m3g4m1nd.tokenizer import texts_from_jsonl
+
+    path = tmp_path / "mixed.jsonl"
+    path.write_text(
+        '{"text": "plain text row"}\n'
+        '{"conversations": [{"role": "user", "content": "a"}, '
+        '{"role": "assistant", "content": "b"}]}\n',
+        encoding="utf-8",
+    )
+    assert list(texts_from_jsonl(path)) == ["plain text row", "a\nb"]
+
+
+def test_the_streaming_reader_honours_a_limit(tmp_path):
+    from m3g4m1nd.tokenizer import texts_from_jsonl
+
+    path = tmp_path / "many.jsonl"
+    path.write_text("".join(f'{{"text": "row {i}"}}\n' for i in range(50)), encoding="utf-8")
+    assert len(list(texts_from_jsonl(path, limit=7))) == 7
+
+
+def test_a_corpus_of_nothing_but_rubbish_is_refused(tmp_path):
+    from m3g4m1nd.tokenizer import texts_from_jsonl
+
+    path = tmp_path / "rubbish.jsonl"
+    path.write_text("not json\nalso not json\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="yielded no usable text"):
+        list(texts_from_jsonl(path))
+
+
+def test_blank_and_empty_rows_are_skipped_not_counted(tmp_path):
+    from m3g4m1nd.tokenizer import texts_from_jsonl
+
+    path = tmp_path / "sparse.jsonl"
+    path.write_text(
+        '\n{"text": ""}\n{"text": "   "}\n{"text": "real"}\n\n', encoding="utf-8"
+    )
+    assert list(texts_from_jsonl(path)) == ["real"]
+
+
+# ---------------------------------------------- the vocabulary is real
+def test_the_vocabulary_fills_the_space_the_model_reserves(tok):
+    """A 733-entry placeholder trained on fifteen sentences used to sit here."""
+    assert len(tok) == M3Config().vocab_size == 6400
+
+
+@pytest.mark.parametrize(
+    "language,text,floor",
+    [
+        ("English", "Attention is a weighted average where the weights are learned "
+                    "from the content itself.", 2.0),
+        ("Chinese", "人工智能是计算机科学的一个分支，它企图了解智能的实质。", 1.4),
+        ("Mixed", "Python 是一种高级编程语言，widely used in data science.", 1.8),
+    ],
+)
+def test_compression_proves_the_merges_are_real(tok, language, text, floor):
+    """The test that would have caught MiniMind's empty vocabulary.
+
+    A byte-level BPE with no merges emits one token per byte and reports
+    success. English then compresses at roughly 1.0 and Chinese below that.
+    Real merges put English above 2 and Chinese near 1.7, which is also the
+    range MiniMind documents for this vocabulary size.
+    """
+    tokens = len(tok.encode(text, add_special_tokens=False))
+    ratio = len(text) / tokens
+    assert ratio >= floor, (
+        f"{language} compresses at {ratio:.2f} chars/token, below the {floor} floor. "
+        f"A vocabulary with no merges sits near 1.0."
+    )
+
+
+def test_a_vocabulary_with_no_merges_would_fail_that_floor(tmp_path):
+    """The control: build the degenerate case and confirm the floor catches it."""
+    out = train_tokenizer(["abcdefghij"], tmp_path / "degenerate", vocab_size=300)
+    degenerate = load_tokenizer(out)
+    text = "Attention is a weighted average where the weights are learned."
+    ratio = len(text) / len(degenerate.encode(text, add_special_tokens=False))
+    assert ratio < 2.0, f"control is wrong: a near-empty vocabulary compressed at {ratio:.2f}"

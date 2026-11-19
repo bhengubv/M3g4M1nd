@@ -1,23 +1,42 @@
-# Tokenizer artefact
+# Tokenizer
 
-`tokenizer.json` here is a **placeholder**, trained on the 15-line fixture
-corpus in `tests/fixtures/corpus.jsonl`. It has 733 entries, not the 6,400 the
-model config reserves, because fifteen sentences cannot produce 6,400 useful
-merges.
+Byte-level BPE, **6,400 entries**, matching the model's reserved embedding rows
+exactly. 465 KB.
 
-That is fine and deliberate: the extra embedding rows are simply unused, the
-chat template is complete and tested, and every test in the suite runs against
-this artefact without downloading anything. It is stated here rather than left
-for someone to discover, because a vocabulary that silently fails to train is
-exactly how MiniMind once shipped one with no merges at all.
+Trained on 2026-11-20 from the first 200 MiB of MiniMind's
+`pretrain_t2t_mini.jsonl` — 434,099 rows, 76.7M characters of mixed Chinese and
+English — in 429 seconds on 4 CPU cores. The corpus itself is not committed
+(`dataset/` is gitignored); it is a byte range of a 1.16 GB public dataset and
+is re-fetchable.
 
-Rebuild it from a real corpus with:
+Measured compression, characters per token:
 
-```python
-from m3g4m1nd.tokenizer import train_tokenizer
-train_tokenizer(texts, "model", vocab_size=6400)
-```
+| | |
+|---|---|
+| English | 2.53 |
+| Chinese | 1.69 |
+| Mixed | 2.14 |
+| Code | 1.56 |
+
+The Chinese figure is the useful check: MiniMind documents 1.5–1.7 chars/token
+for Chinese with this vocabulary size, and an independently trained tokenizer
+landing at 1.69 is evidence the merges are real rather than a vocabulary that
+silently failed to train. `tests/test_tokenizer.py` asserts a floor on this,
+because a BPE with no merges returns roughly 1.0 and reports success — which is
+how MiniMind once shipped an empty one.
 
 `tokenizer_config.json` takes `model_max_length` from `M3Config`, so the two
-cannot drift. `tests/test_tokenizer.py` asserts that, and asserts the trained
-vocabulary fits inside the model's embedding.
+cannot drift.
+
+## Rebuilding
+
+```bash
+python -m m3g4m1nd tokenizer --data dataset/corpus.jsonl --vocab-size 6400
+```
+
+Or from a sliced corpus, tolerating the truncated final record:
+
+```python
+from m3g4m1nd import train_tokenizer, texts_from_jsonl
+train_tokenizer(texts_from_jsonl("dataset/slice.jsonl"), "model", vocab_size=6400)
+```

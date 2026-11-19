@@ -144,6 +144,42 @@ def train_tokenizer(
     return out_dir
 
 
+def texts_from_jsonl(path: str | Path, limit: int | None = None):
+    """Stream training text out of a jsonl corpus, tolerating a truncated tail.
+
+    A corpus fetched as a byte range ends mid-record, and one unparseable final
+    line should not lose the preceding two hundred megabytes. Malformed lines
+    anywhere are skipped and counted rather than raised, because a corpus is
+    data and data is never as clean as its schema.
+    """
+    import json
+
+    used = skipped = 0
+    with open(path, "r", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            if limit is not None and used >= limit:
+                break
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                skipped += 1
+                continue
+            if "text" in row:
+                text = str(row["text"])
+            else:
+                text = "\n".join(
+                    m.get("content", "") for m in row.get("conversations", []) or []
+                )
+            if text.strip():
+                used += 1
+                yield text
+    if not used:
+        raise ValueError(f"{path} yielded no usable text ({skipped} malformed lines)")
+
+
 def load_tokenizer(path: str | Path = "model"):
     from transformers import AutoTokenizer
 

@@ -86,17 +86,42 @@ def test_nothing_in_the_suite_asks_for_a_gpu():
     assert not offenders, "; ".join(offenders)
 
 
-def test_no_dataset_file_in_the_repository_is_large():
-    """Fixtures are committed; corpora are not. If a multi-megabyte jsonl lands
-    here, the suite has stopped being self-contained."""
+def test_no_tracked_dataset_file_is_large():
+    """Fixtures are committed; corpora are not.
+
+    The check is on *tracked* files. A developer who has fetched a 200 MB
+    training corpus into the gitignored `dataset/` directory has done the right
+    thing, and the suite failing at them for it would teach them to ignore the
+    suite.
+    """
+    import subprocess
+
+    tracked = subprocess.run(
+        ["git", "ls-files", "*.jsonl"], cwd=ROOT, capture_output=True, text=True
+    ).stdout.split()
+
     oversized = []
-    for path in ROOT.rglob("*.jsonl"):
-        if ".venv" in path.parts:
-            continue
-        size = path.stat().st_size
+    for name in tracked:
+        size = (ROOT / name).stat().st_size
         if size > 64 * 1024:
-            oversized.append(f"{path.relative_to(ROOT)} is {size // 1024} KiB")
-    assert not oversized, "; ".join(oversized)
+            oversized.append(f"{name} is {size // 1024} KiB")
+    assert not oversized, (
+        "committed corpora make the suite stop being self-contained: "
+        + "; ".join(oversized)
+    )
+
+
+def test_a_fetched_corpus_is_ignored_rather_than_committed():
+    """The other half: if a corpus is present, git must not be tracking it."""
+    import subprocess
+
+    present = list((ROOT / "dataset").glob("*.jsonl")) if (ROOT / "dataset").exists() else []
+    for path in present:
+        result = subprocess.run(
+            ["git", "check-ignore", str(path.relative_to(ROOT))],
+            cwd=ROOT, capture_output=True, text=True,
+        )
+        assert result.returncode == 0, f"{path.name} is not ignored and could be committed"
 
 
 def test_the_committed_tokenizer_is_small_enough_to_live_in_git():
