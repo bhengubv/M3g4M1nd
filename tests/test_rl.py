@@ -222,9 +222,14 @@ def test_a_tiny_learning_rate_leaves_the_clip_unfired_but_not_inert():
     the clip was never needed. That is not the defect."""
     updater = _run(lr=1e-9, epsilon=0.2)
     assert not updater.clip_ever_engaged
-    # Below float32 resolution the measured ratio is exactly 0, which is why
-    # the alarm cannot be built on the measurement.
-    assert not updater.ratio_ever_moved
+
+    # The ratio moved by an amount at or below float32 resolution. Whether
+    # that measures as exactly 0 or as 2.4e-08 is the platform's arithmetic,
+    # not a property of this code: Windows gave 0 and Linux gave 2.4e-08, and
+    # the first version of this test asserted the Windows value and failed CI.
+    # What matters is that the movement is negligible.
+    assert max(s.mean_abs_log_ratio for s in updater.history) < 1e-6
+
     assert not updater.clip_is_inert, "a healthy run must not raise the alarm"
 
 
@@ -244,7 +249,9 @@ def test_a_single_pass_is_the_case_that_is_genuinely_inert():
         )
     updater.step(model, reference, ids, mask, old, adv)
 
-    assert not updater.ratio_ever_moved
+    # One pass recomputes the log-probabilities from the same weights that drew
+    # the samples, so the ratio is 1 to within arithmetic noise on any platform.
+    assert max(s.mean_abs_log_ratio for s in updater.history) < 1e-6
     assert updater.clip_is_inert, "this is the condition worth alarming on"
     assert not updater.clip_ever_engaged
 
@@ -273,3 +280,26 @@ def test_a_default_updater_is_not_inert():
     updater = GRPOUpdater(optimizer=torch.optim.SGD(model.parameters(), lr=1e-3))
     assert updater.inner_iters >= 2
     assert not updater.clip_is_inert
+
+
+def test_the_alarm_does_not_depend_on_platform_float_behaviour():
+    """Regression for the first CI failure this repository ever had.
+
+    `ratio_ever_moved` is a measurement and measurements differ between
+    platforms: at lr=1e-9 Windows reported a log-ratio of exactly 0 and Linux
+    reported 2.4e-08. A test asserting either value pins one machine's
+    arithmetic as a property of the code. `clip_is_inert` is structural and
+    identical everywhere, which is why the alarm is built on it.
+    """
+    model = tiny_model()
+    with pytest.warns(UserWarning):
+        inert = GRPOUpdater(
+            optimizer=torch.optim.SGD(model.parameters(), lr=1e-3),
+            inner_iters=1, allow_inert_clip=True,
+        )
+    live = GRPOUpdater(optimizer=torch.optim.SGD(model.parameters(), lr=1e-3), inner_iters=2)
+
+    # No history, no arithmetic, no platform dependence — and still a verdict.
+    assert inert.history == [] and live.history == []
+    assert inert.clip_is_inert is True
+    assert live.clip_is_inert is False
